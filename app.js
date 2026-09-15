@@ -426,11 +426,11 @@ async function compartilharTela() {
   const temAudio = stream.getAudioTracks().length > 0;
   minhaTela = { stream, qualidade: chaveQ, audio: temAudio };
 
-  if (querAudio && !temAudio) {
-    avisoSala('Sua tela está sem áudio. Na janela de escolha, marque a opção de compartilhar áudio. Funciona com a tela inteira ou com uma aba.');
-  } else {
-    avisoSala('');
-  }
+  avisarSobreAudio(trilhaVideo, querAudio);
+  // surfaceSwitching deixa trocar de tela no meio da transmissão: o aviso acompanha
+  trilhaVideo.addEventListener('configurationchange', () => {
+    if (minhaTela?.stream === stream) avisarSobreAudio(trilhaVideo, querAudio);
+  });
 
   const t = criarTile(meuId, 'Sua tela', true);
   t.video.muted = true; // evita ouvir o próprio som em dobro
@@ -441,12 +441,31 @@ async function compartilharTela() {
   enviarAoDono({ tipo: 'compartilhando', ligado: true, qualidade: chaveQ, audio: temAudio });
 }
 
+// O navegador não separa o som de um programa só: na tela inteira ele entrega o áudio do
+// sistema já misturado. Quem está numa chamada (Discord) acaba devolvendo a voz de todo
+// mundo. Compartilhar a aba resolve, porque aí só o som da aba é capturado.
+function avisarSobreAudio(trilhaVideo, querAudio) {
+  const superficie = trilhaVideo.getSettings().displaySurface;
+  const temAudio = minhaTela?.stream.getAudioTracks().length > 0;
+
+  if (querAudio && !temAudio) {
+    avisoSala(superficie === 'window'
+      ? 'Janela de programa não leva áudio. Para transmitir com som, escolha a tela inteira ou uma aba do navegador.'
+      : 'Sua tela está sem áudio. Na janela de escolha, marque a opção de compartilhar áudio. Funciona com a tela inteira ou com uma aba.');
+  } else if (temAudio && superficie === 'monitor') {
+    avisoSala('Compartilhando a tela inteira, vai junto todo o som do computador — inclusive a voz do Discord, que volta duplicada para quem está na chamada. Para mandar só o som do vídeo, compartilhe a aba do navegador.');
+  } else {
+    avisoSala('');
+  }
+}
+
 function pararTela() {
   if (!minhaTela) return;
   minhaTela.stream.getTracks().forEach((t) => t.stop());
   minhaTela = null;
   for (const id of [...envios.keys()]) fecharEnvio(id);
   removerTile(meuId);
+  avisoSala(''); // o aviso falava da transmissão que acabou de terminar
   atualizarControles();
   enviarAoDono({ tipo: 'compartilhando', ligado: false });
 }

@@ -110,6 +110,13 @@ seguram a qualidade, e os três precisam andar juntos:
 
 ## Limites e limitações conhecidas
 
+- **Não dá para capturar o som de um programa só.** Na tela inteira o navegador entrega o
+  áudio do sistema já misturado; não existe API para tirar o Discord (ou qualquer outro app)
+  de dentro do mix. Quem está numa chamada de voz devolve a voz de todo mundo duplicada.
+  Compartilhar uma **aba** captura só o som da aba e resolve; janela de programa não leva
+  áudio nenhum no Chrome. `avisarSobreAudio()` lê `displaySurface` e avisa em cada caso.
+  Isso é diferente do eco do próprio Telão, que já está tratado por `restrictOwnAudio`,
+  `selfBrowserSurface: 'exclude'` e o `muted` no tile da própria tela.
 - `MAX_MEMBROS = 6` (você + 5) e `MAX_PEDIDOS = 5`. Como a mídia é em malha, cada pessoa que
   te assiste custa um envio inteiro de upload — subir esse número sem mudar a topologia
   estoura a internet de quem compartilha.

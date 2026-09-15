@@ -26,6 +26,9 @@ que estão chegando de verdade.
 - Para **compartilhar** tela: Chrome ou Edge no computador. No celular dá para assistir.
 - Para transmitir **com som**, marque a opção de compartilhar áudio na janela que o navegador
   abre (funciona com a tela inteira ou com uma aba).
+- **Se vocês estão no Discord, compartilhe a aba, não a tela inteira.** A tela inteira captura
+  todo o som do computador junto, inclusive a voz da chamada — que volta duplicada para quem
+  está ouvindo. A aba manda só o som dela. O Telão avisa quando você cai nesse caso.
 - A sala existe enquanto a aba de quem criou estiver aberta.
 - Em rede corporativa muito fechada a conexão pode não fechar (não há servidor TURN).
 
