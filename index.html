@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Só permite scripts/estilos deste site e conexões com o servidor do PeerJS -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://0.peerjs.com wss://0.peerjs.com; img-src 'self' data:; media-src 'self' blob: mediastream:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Telão</title>
+<link rel="stylesheet" href="style.css">
+<script src="peerjs.min.js" defer></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="marca">Telão<span>.</span></div>
+    <div class="ao-vivo" id="aoVivo"><span class="ponto"></span>Você está ao vivo</div>
+  </header>
+
+  <!-- Início: criar sala ou pedir para entrar -->
+  <section class="cartao oculto" id="telaInicio">
+    <h1 id="inicioTitulo">Assista junto com seus amigos</h1>
+    <p id="inicioTexto">Crie uma sala e mande o link. Cada pessoa compartilha a tela quando quiser, com áudio e em até 1080p 60fps.</p>
+    <div class="barra">
+      <input class="campo" id="inputNome" maxlength="30" placeholder="Seu nome" autocomplete="nickname" aria-label="Seu nome">
+      <button class="principal" id="btnInicio">Criar sala</button>
+    </div>
+    <p class="status" id="inicioStatus" role="status"></p>
+  </section>
+
+  <!-- Mensagens: aguardando, recusado, sala encerrada... -->
+  <section class="cartao oculto" id="telaAviso">
+    <h1 id="avisoTitulo"></h1>
+    <p id="avisoTexto"></p>
+    <button class="oculto" id="btnVoltar">Voltar ao início</button>
+  </section>
+
+  <!-- Sala -->
+  <section class="sala oculto" id="telaSala">
+    <main class="coluna">
+      <div class="palco" id="palco">
+        <div class="palco-vazio" id="palcoVazio">
+          <h2>Nada na tela ainda</h2>
+          <p>Compartilhe sua tela ou clique em Assistir em quem estiver ao vivo.</p>
+        </div>
+      </div>
+
+      <div class="controles">
+        <select class="campo" id="qualidade" aria-label="Qualidade da transmissão">
+          <option value="1080p60">1080p 60fps (jogos e vídeos)</option>
+          <option value="1080p30">1080p 30fps (usa menos internet)</option>
+        </select>
+        <label class="check"><input type="checkbox" id="comAudio" checked> Transmitir áudio</label>
+        <button class="principal" id="btnTela">Compartilhar tela</button>
+        <button class="perigo" id="btnSair">Sair</button>
+      </div>
+      <p class="status" id="statusSala" role="status"></p>
+    </main>
+
+    <aside class="lateral">
+      <div class="bloco oculto" id="blocoConvite">
+        <h2>Convite</h2>
+        <div class="convite">
+          <input class="campo" id="link" readonly aria-label="Link de convite">
+          <button id="btnCopiar">Copiar</button>
+        </div>
+      </div>
+      <div class="bloco destaque oculto" id="blocoPedidos">
+        <h2>Pedindo para entrar</h2>
+        <ul class="lista" id="listaPedidos"></ul>
+      </div>
+      <div class="bloco">
+        <h2 id="tituloMembros">Na sala</h2>
+        <ul class="lista" id="listaMembros"></ul>
+      </div>
+    </aside>
+  </section>
+</div>
+</body>
+</html>
