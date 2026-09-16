@@ -30,11 +30,14 @@ let membros = new Map();       // lista oficial enviada pelo dono: id -> { id, n
 const aprovados = new Map();   // só o dono: id -> { conn, nome, compartilhando, qualidade, audio }
 const pedidos = new Map();     // só o dono: id -> { conn, nome, el }
 
-let minhaTela = null;          // { stream, qualidade, audio }
+let minhaTela = null;          // { stream, original, qualidade, audio }
+let cadeiaAudio = null;        // só de quem compartilha: { contexto, ganhos, destino }
 const envios = new Map();      // para quem estou mandando minha tela: id -> call
 const querAssistir = new Set();// telas que eu pedi para ver
 const recebendo = new Map();   // telas chegando: id -> call
-const tiles = new Map();       // telas no palco: id -> { el, video, aviso, info, btnMudo, volume, timer }
+const tiles = new Map();       // telas no palco: id -> { el, video, aviso, info, btnMudo, volume, btnDestacar, timer }
+let destaque = null;           // id da tela grande no palco; as outras viram miniatura
+let destaqueManual = false;    // escolha explícita no botão Destacar manda no automático
 
 /* ======================= UTILIDADES ======================= */
 
@@ -424,17 +427,33 @@ async function compartilharTela() {
   stream.getAudioTracks().forEach((t) => { t.contentHint = 'music'; });
 
   const temAudio = stream.getAudioTracks().length > 0;
-  minhaTela = { stream, qualidade: chaveQ, audio: temAudio };
+
+  // Com áudio, o que sai daqui é a trilha tratada, não a bruta: o filtro de voz liga e
+  // desliga ao vivo mexendo só nos ganhos, sem trocar a trilha no meio da transmissão.
+  let streamEnvio = stream;
+  if (temAudio) {
+    try {
+      cadeiaAudio = montarCadeiaAudio(stream);
+      const trilhaTratada = cadeiaAudio.destino.stream.getAudioTracks()[0];
+      trilhaTratada.contentHint = 'music';
+      streamEnvio = new MediaStream([trilhaVideo, trilhaTratada]);
+    } catch (e) {
+      console.warn('Não foi possível montar a cadeia de áudio; seguindo com o som bruto', e);
+      cadeiaAudio = null;
+    }
+  }
+  minhaTela = { stream: streamEnvio, original: stream, qualidade: chaveQ, audio: temAudio };
+  aplicarSemVoz($('semVoz').checked);
 
   avisarSobreAudio(trilhaVideo, querAudio);
   // surfaceSwitching deixa trocar de tela no meio da transmissão: o aviso acompanha
   trilhaVideo.addEventListener('configurationchange', () => {
-    if (minhaTela?.stream === stream) avisarSobreAudio(trilhaVideo, querAudio);
+    if (minhaTela?.original === stream) avisarSobreAudio(trilhaVideo, querAudio);
   });
 
   const t = criarTile(meuId, 'Sua tela', true);
   t.video.muted = true; // evita ouvir o próprio som em dobro
-  t.video.srcObject = stream;
+  t.video.srcObject = streamEnvio;
   t.aviso.classList.add('oculto');
 
   atualizarControles();
@@ -446,7 +465,7 @@ async function compartilharTela() {
 // mundo. Compartilhar a aba resolve, porque aí só o som da aba é capturado.
 function avisarSobreAudio(trilhaVideo, querAudio) {
   const superficie = trilhaVideo.getSettings().displaySurface;
-  const temAudio = minhaTela?.stream.getAudioTracks().length > 0;
+  const temAudio = minhaTela?.original?.getAudioTracks().length > 0;
 
   if (querAudio && !temAudio) {
     avisoSala(superficie === 'window'
@@ -459,10 +478,51 @@ function avisarSobreAudio(trilhaVideo, querAudio) {
   }
 }
 
+/* ---------- Filtro de voz de chamada (experimental) ---------- */
+
+// Voz de chamada chega em mono, igual nos dois canais, então L menos R cancela ela.
+// O preço é alto: some tudo que está no centro do estéreo, inclusive o diálogo do filme.
+// A cadeia fica sempre montada; desligado é só uma questão de ganho (cada canal segue reto).
+function montarCadeiaAudio(streamOriginal) {
+  const contexto = new AudioContext();
+  const divisor = contexto.createChannelSplitter(2);
+  const juntador = contexto.createChannelMerger(2);
+  const destino = contexto.createMediaStreamDestination();
+
+  contexto.createMediaStreamSource(streamOriginal).connect(divisor);
+  // ganhos[saida][entrada]: quanto de cada canal que entra vai para cada canal que sai
+  const ganhos = [[], []];
+  for (let saida = 0; saida < 2; saida++) {
+    for (let entrada = 0; entrada < 2; entrada++) {
+      const g = contexto.createGain();
+      divisor.connect(g, entrada);
+      g.connect(juntador, 0, saida);
+      ganhos[saida][entrada] = g;
+    }
+  }
+  juntador.connect(destino);
+  contexto.resume().catch(() => {});
+  return { contexto, ganhos, destino };
+}
+
+function aplicarSemVoz(ligado) {
+  if (!cadeiaAudio) return;
+  const [esq, dir] = cadeiaAudio.ganhos;
+  // ligado: as duas saídas viram (L-R)/2 — metade, senão a soma estoura em som alto
+  // desligado: cada canal segue reto, sem tocar no som
+  esq[0].gain.value = ligado ? 0.5 : 1;
+  esq[1].gain.value = ligado ? -0.5 : 0;
+  dir[0].gain.value = ligado ? 0.5 : 0;
+  dir[1].gain.value = ligado ? -0.5 : 1;
+}
+
 function pararTela() {
   if (!minhaTela) return;
   minhaTela.stream.getTracks().forEach((t) => t.stop());
+  minhaTela.original.getTracks().forEach((t) => t.stop()); // a captura crua não está no stream enviado
   minhaTela = null;
+  cadeiaAudio?.contexto.close().catch(() => {});
+  cadeiaAudio = null;
   for (const id of [...envios.keys()]) fecharEnvio(id);
   removerTile(meuId);
   avisoSala(''); // o aviso falava da transmissão que acabou de terminar
@@ -610,7 +670,9 @@ function criarTile(id, nome, propria) {
     t.volume.classList.add('oculto');
     controles.append(t.btnMudo, t.volume);
   }
-  controles.append(botao('Tela cheia', null, () => telaCheia(t)));
+  t.btnDestacar = botao('Destacar', 'principal', () => definirDestaque(id));
+  t.btnDestacar.classList.add('oculto');
+  controles.append(t.btnDestacar, botao('Tela cheia', 'cheia', () => telaCheia(t)));
   if (!propria) controles.append(botao('Parar de assistir', 'perigo', () => pararDeAssistir(id)));
 
   t.el.append(t.video, t.aviso, topo, controles);
@@ -667,9 +729,26 @@ function removerTile(id) {
   atualizarPalco();
 }
 
+function definirDestaque(id) {
+  destaque = id;
+  destaqueManual = true;
+  atualizarPalco();
+}
+
+// Com mais de uma tela, uma fica grande e o resto vira miniatura embaixo. Sem destaque
+// escolhido, prefere a tela de outra pessoa: a própria a gente já está vendo no monitor.
 function atualizarPalco() {
   mostrar('palcoVazio', tiles.size === 0);
-  $('palco').classList.toggle('varios', tiles.size > 1);
+  if (!tiles.has(destaque)) { destaque = null; destaqueManual = false; }
+  if (!destaqueManual) {
+    destaque = [...tiles.keys()].find((id) => id !== meuId) ?? [...tiles.keys()][0] ?? null;
+  }
+  const varias = tiles.size > 1;
+  $('palco').classList.toggle('foco', varias);
+  for (const [id, t] of tiles) {
+    t.el.classList.toggle('destaque', varias && id === destaque);
+    t.btnDestacar.classList.toggle('oculto', !varias || id === destaque);
+  }
 }
 
 function telaCheia(t) {
@@ -716,6 +795,14 @@ $('btnInicio').addEventListener('click', acaoInicio);
 $('inputNome').addEventListener('keydown', (e) => { if (e.key === 'Enter') acaoInicio(); });
 $('btnVoltar').addEventListener('click', () => { location.href = location.pathname; });
 $('btnTela').addEventListener('click', alternarTela);
+$('semVoz').addEventListener('change', () => {
+  const ligado = $('semVoz').checked;
+  aplicarSemVoz(ligado);
+  // Em mono os dois canais são iguais, então L menos R dá silêncio puro
+  if (ligado && minhaTela?.original?.getAudioTracks()[0]?.getSettings().channelCount === 1) {
+    avisoSala('O som capturado é mono: nesse caso o filtro zera o áudio inteiro. Só funciona com som em estéreo.');
+  }
+});
 $('btnSair').addEventListener('click', sair);
 $('btnCopiar').addEventListener('click', copiarLink);
 window.addEventListener('beforeunload', () => peer?.destroy());

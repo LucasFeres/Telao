@@ -83,6 +83,15 @@ convite — não a remova.
 `tiles` (o que está no palco). `aplicarEstado()` é o ponto único de reconciliação: quando a
 lista muda, ela derruba o que ficou órfão (quem saiu, quem parou de transmitir).
 
+### Palco
+
+Com mais de uma tela, `atualizarPalco()` põe a classe `foco` no palco: a tela `destaque`
+ocupa a linha inteira e o resto vira miniatura embaixo (CSS puro, via `order` e
+`grid-column` — nenhum tile muda de pai, senão o vídeo pisca). Sem escolha explícita, o
+destaque cai na tela de outra pessoa; o botão **Destacar** liga `destaqueManual` e trava a
+escolha até aquele tile sair. Miniatura só mostra Mutar e Destacar: o resto não cabe em
+170px, e `.tile` tem `overflow: hidden`, então o excesso seria cortado em vez de vazar.
+
 ## Regras que o código assume
 
 - **Nada de `innerHTML`.** Todo nó novo sai de `criar()`/`botao()`, que usam `textContent`.
@@ -107,6 +116,22 @@ seguram a qualidade, e os três precisam andar juntos:
   vira mono comprimido.
 
 `contentHint` é `motion` no vídeo e `music` no áudio, pela mesma razão.
+
+### Cadeia de áudio de quem compartilha
+
+Com áudio ligado, o que vai para os outros **não é a trilha bruta**: `montarCadeiaAudio()`
+monta um grafo WebAudio (divisor → 4 ganhos → juntador → destino) e o stream enviado leva a
+trilha tratada. `minhaTela.original` guarda a captura crua — `pararTela()` precisa parar as
+duas, senão a captura do sistema continua viva.
+
+A matriz de 4 ganhos é `ganhos[saída][entrada]`. Desligado, cada canal segue reto (1/0, 0/1)
+e o som passa intacto; ligado, as duas saídas viram `(L−R)/2`, o efeito karaokê — a metade
+evita estourar quando os lados somam. Como só os ganhos mudam, o filtro liga e desliga ao
+vivo sem trocar a trilha, e nenhum `replaceTrack` é necessário.
+
+O filtro é paliativo e tem dois buracos conhecidos: come o diálogo do que está sendo
+assistido (também está no centro) e, se a captura vier em **mono**, zera o áudio inteiro
+(os canais são iguais, a subtração dá silêncio). O `change` do `#semVoz` avisa nesse caso.
 
 ## Limites e limitações conhecidas
 

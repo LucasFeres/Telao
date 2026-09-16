@@ -16,8 +16,10 @@ conta, sem servidor no meio: o vídeo vai direto de um computador para o outro.
 4. Clique em **Compartilhar tela** para transmitir, ou em **Assistir** para ver a tela de
    alguém. Dá para assistir a mais de uma ao mesmo tempo.
 
-Cada tela tem controle de volume, botão de mudo e tela cheia, e mostra a resolução e os fps
-que estão chegando de verdade.
+Assistindo a mais de uma tela, uma fica grande e as outras viram miniatura embaixo — clique
+em **Destacar** na miniatura para trocar qual é a grande, ou em **Tela cheia** para ocupar o
+monitor inteiro. Cada tela tem controle de volume, botão de mudo, e mostra a resolução e os
+fps que estão chegando de verdade.
 
 ## Precisa saber
 
@@ -29,6 +31,11 @@ que estão chegando de verdade.
 - **Se vocês estão no Discord, compartilhe a aba, não a tela inteira.** A tela inteira captura
   todo o som do computador junto, inclusive a voz da chamada — que volta duplicada para quem
   está ouvindo. A aba manda só o som dela. O Telão avisa quando você cai nesse caso.
+- Se não der para usar a aba (um jogo, por exemplo), a opção **Tirar voz de chamada** tenta
+  cancelar a voz por subtração de canais. Funciona, mas leva junto o diálogo do que vocês
+  estão assistindo, e não faz nada se o som for mono — por isso vem desligada. A solução
+  limpa para esse caso é mandar o Discord para outra saída de áudio nas configurações do
+  Windows.
 - A sala existe enquanto a aba de quem criou estiver aberta.
 - Em rede corporativa muito fechada a conexão pode não fechar (não há servidor TURN).
 

@@ -71,7 +71,18 @@ button:disabled, select:disabled, input:disabled { opacity: .5; cursor: not-allo
 
 /* O palco: grade com as telas que você está vendo */
 .palco { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-.palco.varios { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Com várias telas: a destacada ocupa a linha inteira, o resto vira miniatura embaixo */
+.palco.foco { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.palco.foco > .tile { order: 1; }
+.palco.foco > .tile.destaque { order: 0; grid-column: 1 / -1; }
+/* Miniatura é estreita: encolhe os controles para não estourar */
+.palco.foco > .tile:not(.destaque) .tile-topo { padding: 3px 7px; font-size: 12px; }
+.palco.foco > .tile:not(.destaque) .tile-controles { padding: 20px 6px 6px; gap: 5px; }
+.palco.foco > .tile:not(.destaque) .tile-controles button { padding: 5px 8px; font-size: 12px; }
+/* Na miniatura cabem só Mutar e Destacar; o resto é ação da tela grande */
+.palco.foco > .tile:not(.destaque) .tile-controles input[type="range"],
+.palco.foco > .tile:not(.destaque) .tile-controles .cheia,
+.palco.foco > .tile:not(.destaque) .tile-controles .perigo { display: none; }
 .palco-vazio {
   aspect-ratio: 16 / 9;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
@@ -150,7 +161,7 @@ button:disabled, select:disabled, input:disabled { opacity: .5; cursor: not-allo
 }
 @media (max-width: 640px) {
   .marca { font-size: 32px; }
-  .palco.varios { grid-template-columns: minmax(0, 1fr); }
+  .palco.foco { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
   .controles #btnTela { margin-left: 0; }
   .controles > * { flex: 1 1 100%; }
   .cartao { padding: 22px; margin: 24px 0; }
