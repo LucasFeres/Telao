@@ -729,6 +729,31 @@ function removerTile(id) {
   atualizarPalco();
 }
 
+// Quanto o palco pode crescer depende do que sobra de altura, e isso muda sozinho:
+// os controles quebram de linha em tela estreita, o recado ocupa uma ou duas linhas.
+// Medir sai mais barato que adivinhar em media query — e não quebra se um rótulo mudar.
+const alturaCom = (el) => {
+  const cs = getComputedStyle(el);
+  return el.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
+};
+
+function ajustarPalco() {
+  const app = document.querySelector('.app');
+  const palco = $('palco');
+  const cs = getComputedStyle(app);
+  let sobra = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom)
+    + alturaCom(document.querySelector('header'))
+    + alturaCom(document.querySelector('.controles'))
+    + alturaCom($('statusSala'));
+
+  // No modo foco as miniaturas ficam dentro do palco, embaixo da tela destacada
+  const mini = [...tiles.values()].find((t) => !t.el.classList.contains('destaque'));
+  if (mini && palco.classList.contains('foco')) {
+    sobra += mini.el.offsetHeight + parseFloat(getComputedStyle(palco).rowGap || 0);
+  }
+  palco.style.setProperty('--sobra', `${Math.ceil(sobra)}px`);
+}
+
 function definirDestaque(id) {
   destaque = id;
   destaqueManual = true;
@@ -749,6 +774,7 @@ function atualizarPalco() {
     t.el.classList.toggle('destaque', varias && id === destaque);
     t.btnDestacar.classList.toggle('oculto', !varias || id === destaque);
   }
+  ajustarPalco();
 }
 
 function telaCheia(t) {
@@ -806,6 +832,11 @@ $('semVoz').addEventListener('change', () => {
 $('btnSair').addEventListener('click', sair);
 $('btnCopiar').addEventListener('click', copiarLink);
 window.addEventListener('beforeunload', () => peer?.destroy());
+
+// Cabeçalho, controles e recado mudam de altura sozinhos (quebra de linha, texto novo):
+// observar os três pega qualquer caso, inclusive redimensionar a janela
+const olhoNoLayout = new ResizeObserver(ajustarPalco);
+for (const sel of ['header', '.controles', '#statusSala']) olhoNoLayout.observe(document.querySelector(sel));
 
 if (typeof Peer === 'undefined') {
   mostrarAviso('Não foi possível carregar o app', 'Confira se o arquivo peerjs.min.js foi enviado junto com os outros.', false);

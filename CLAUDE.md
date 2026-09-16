@@ -85,6 +85,20 @@ lista muda, ela derruba o que ficou órfão (quem saiu, quem parou de transmitir
 
 ### Palco
 
+A tela cresce até onde a janela deixa: `.tile` tem `max-width: calc((100vh - var(--sobra))
+* 16 / 9)`, ou seja, a largura sai da altura disponível. Sem isso, em monitor grande a tela
+16:9 fica mais alta que o visível e obriga a rolar a página.
+
+`--sobra` é quanto o cabeçalho, os controles, o recado e (no modo foco) a fila de miniaturas
+ocupam fora do palco. **`ajustarPalco()` mede isso de verdade, não chuta**: o valor muda
+sozinho quando os controles quebram de linha ou o recado passa a ocupar duas linhas, e uma
+media query com número fixo erra por dezenas de pixels (e quebraria de novo se um rótulo
+mudasse de texto). Um `ResizeObserver` no cabeçalho, nos controles e no recado recalcula
+sempre que qualquer um deles muda de altura — isso cobre inclusive redimensionar a janela.
+O valor em CSS é só o palpite inicial até o JS rodar. Abaixo de 960px o teto é removido: a
+lateral desce para baixo do palco, a página rola de qualquer jeito, e limitar só encolheria
+o vídeo à toa.
+
 Com mais de uma tela, `atualizarPalco()` põe a classe `foco` no palco: a tela `destaque`
 ocupa a linha inteira e o resto vira miniatura embaixo (CSS puro, via `order` e
 `grid-column` — nenhum tile muda de pai, senão o vídeo pisca). Sem escolha explícita, o

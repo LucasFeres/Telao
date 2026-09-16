@@ -17,7 +17,7 @@ body {
   line-height: 1.5;
 }
 /* Coluna de altura cheia: deixa o cartão de início/aviso centralizar na sobra */
-.app { max-width: 1320px; min-height: 100vh; margin: 0 auto; padding: 24px 20px 40px; display: flex; flex-direction: column; }
+.app { max-width: 2400px; min-height: 100vh; margin: 0 auto; padding: 24px 20px 40px; display: flex; flex-direction: column; }
 .oculto { display: none !important; }
 
 header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
@@ -73,6 +73,16 @@ button:disabled, select:disabled, input:disabled { opacity: .5; cursor: not-allo
 
 /* O palco: grade com as telas que você está vendo */
 .palco { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+/* A tela cresce até onde a janela deixa: 16/9 a partir da altura que sobra, senão
+   em monitor grande ela fica mais alta que o visível e obriga a rolar a página.
+   ajustarPalco() mede a sobra de verdade e reescreve --sobra; este valor é só o
+   palpite inicial, até o JS rodar. */
+.palco { --sobra: 230px; }
+.palco > .tile, .palco > .palco-vazio {
+  width: 100%;
+  max-width: calc((100vh - var(--sobra)) * 16 / 9);
+  margin-inline: auto;
+}
 /* Com várias telas: a destacada ocupa a linha inteira, o resto vira miniatura embaixo */
 .palco.foco { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
 .palco.foco > .tile { order: 1; }
@@ -104,7 +114,10 @@ button:disabled, select:disabled, input:disabled { opacity: .5; cursor: not-allo
   overflow: hidden;
 }
 .tile video { width: 100%; height: 100%; object-fit: contain; display: block; }
-.tile:fullscreen { aspect-ratio: auto; border: 0; border-radius: 0; }
+/* Em tela cheia nada de limite: o teto de altura acima encolheria a tela inteira.
+   Seletor casado com o de cima (.palco > .tile) de propósito, para vencer por
+   especificidade e não por ordem no arquivo. */
+.palco > .tile:fullscreen { aspect-ratio: auto; border: 0; border-radius: 0; max-width: none; }
 .tile-aviso {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center; padding: 16px; text-align: center;
@@ -160,6 +173,9 @@ button:disabled, select:disabled, input:disabled { opacity: .5; cursor: not-allo
 /* ---------- Responsivo e acessibilidade ---------- */
 @media (max-width: 960px) {
   .sala { grid-template-columns: minmax(0, 1fr); }
+  /* Aqui a lateral desce para baixo do palco e a página rola de qualquer jeito:
+     limitar a altura só encolheria o vídeo à toa */
+  .palco > .tile, .palco > .palco-vazio { max-width: none; }
 }
 @media (max-width: 640px) {
   .marca { font-size: 32px; }
