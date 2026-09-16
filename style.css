@@ -60,6 +60,12 @@ button:disabled, select:disabled, input:disabled { opacity: .5; cursor: not-allo
   padding: 32px;
   background: var(--palco); border: 1px solid var(--borda); border-radius: 16px;
 }
+/* No início e no aviso a marca desce e acompanha o cartão: as duas margens auto
+   se encontram, então o par centraliza junto. Sem isso a marca fica sozinha lá no
+   topo, longe do cartão — mais estranho ainda em monitor largo e baixo. */
+.app:has(> .cartao:not(.oculto)) > header { margin-top: auto; justify-content: center; }
+.app:has(> .cartao:not(.oculto)) > .cartao { margin-top: 0; margin-bottom: auto; }
+
 .cartao h1 { font-size: clamp(24px, 4vw, 32px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
 .cartao p { color: var(--nevoa); margin: 10px 0 22px; max-width: 52ch; }
 .cartao > button { margin-top: 4px; }
@@ -182,8 +188,7 @@ button:disabled, select:disabled, input:disabled { opacity: .5; cursor: not-allo
   .palco.foco { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
   .controles #btnTela { margin-left: 0; }
   .controles > * { flex: 1 1 100%; }
-  /* No celular a margem fixa evita o cartão pular quando o teclado abre */
-  .cartao { padding: 22px; margin: 24px auto; }
+  .cartao { padding: 22px; }
 }
 @media (hover: none) { .tile-controles { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .ponto { animation: none; } .tile-controles { transition: none; } }
